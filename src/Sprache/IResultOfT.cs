@@ -14,9 +14,9 @@ namespace Sprache
         T Value { get; }
 
         /// <summary>
-        /// Gets a value indicating whether parsing was successful.
+        /// Gets a value indicating whether parsing was able to return a value.
         /// </summary>
-        bool WasSuccessful { get; }
+        bool HasValue { get; }
 
         /// <summary>
         /// Gets any observations as a result of parsing.

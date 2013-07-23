@@ -48,7 +48,7 @@
                 for (var n = 0; n < count; ++n)
                 {
                     var r = parser(remainder);
-                    if (!r.WasSuccessful)
+                    if (!r.HasValue)
                     {
                         var what = r.Remainder.AtEnd
                             ? "end of input"
@@ -57,7 +57,7 @@
                         var msg = string.Format("Unexpected '{0}'", what);
                         var exp = string.Format("'{0}' {1} times, but was {2}", string.Join(", ", r.Observations.SelectMany(x => x.Expectations)), count, n);
                         return Result.Failure<IEnumerable<T>>(i, 
-                            Observe.Error(msg, exp));
+                            Result.Error(msg, exp));
                     }
 
                     if (remainder != r.Remainder)

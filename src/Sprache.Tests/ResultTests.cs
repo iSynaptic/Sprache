@@ -26,7 +26,7 @@ namespace Sprache.Tests
 
             var r = (Result<string>)p.TryParse("x{");
 
-            const string expectedMessage = "Parsing failure. Recently consumed: 'x'. Observations: \r\nError: unexpected '{'";
+            const string expectedMessage = "Parsing failure. Recently consumed: 'x'. Observations: \r\nunexpected '{'";
 
             Assert.That(r.ToString(), Is.EqualTo(expectedMessage));
         }

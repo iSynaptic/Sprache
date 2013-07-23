@@ -16,7 +16,7 @@ namespace Sprache
             {
                 var r = parser(i);
 
-                if (r.WasSuccessful)
+                if (r.HasValue)
                 {
                     return Result.Success(r.Value.SetPos(Position.FromInput(i), r.Remainder.Position - i.Position), r.Remainder);
                 }

@@ -45,7 +45,7 @@ namespace Sprache
 
             var result = parser.TryParse(input);
             
-            if(result.WasSuccessful)
+            if(result.HasValue)
                 return result.Value;
 
             throw new ParseException(result.ToString());

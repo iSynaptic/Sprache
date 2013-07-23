@@ -21,7 +21,7 @@ namespace Sprache
             {
                 var pr = parser(i);
 
-                if (pr.WasSuccessful)
+                if (pr.HasValue)
                     return Result.Success(new Some<T>(pr.Value), pr.Remainder);
 
                 return Result.Success(new None<T>(), i);

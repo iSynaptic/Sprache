@@ -220,15 +220,13 @@ namespace Sprache.Tests
             var p = ab.ManyWithPanic(Parse.Char('a').LookAhead(), "'ab'").End();
 
             var result = p(new Input("ababaThisShouldGetSkippedab"));
-            Assert.IsTrue(result.WasSuccessful);
+            Assert.IsTrue(result.HasValue);
 
             var elements = result.Value.ToArray();
             Assert.IsTrue(elements.SequenceEqual(new[]{"ab", "ab", "ab"}));
 
             var observations = result.Observations.ToArray();
             Assert.AreEqual(1, observations.Length);
-
-            Assert.AreEqual(ResultObservationSeverity.Error, observations[0].Severity);
 
             Assert.IsTrue(result.Remainder.AtEnd);
         }
@@ -268,7 +266,7 @@ namespace Sprache.Tests
         {
             var optAbc = Parse.String("abc").Text().Optional();
             var r = optAbc.TryParse("abcd");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(3, r.Remainder.Position);
             Assert.IsTrue(r.Value.IsDefined);
             Assert.AreEqual("abc", r.Value.Get());
@@ -279,7 +277,7 @@ namespace Sprache.Tests
         {
             var optAbc = Parse.String("abc").Text().Optional();
             var r = optAbc.TryParse("d");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(0, r.Remainder.Position);
             Assert.IsTrue(r.Value.IsEmpty);
         }
@@ -289,7 +287,7 @@ namespace Sprache.Tests
         {
             var digits = Parse.Regex(@"\d+");
             var r = digits.TryParse("123d");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual("123", r.Value);
             Assert.AreEqual(3, r.Remainder.Position);
         }
@@ -299,7 +297,7 @@ namespace Sprache.Tests
         {
             var digits = Parse.Regex(@"\d+");
             var r = digits.TryParse("d123");
-            Assert.IsFalse(r.WasSuccessful);
+            Assert.IsFalse(r.HasValue);
             Assert.AreEqual(0, r.Remainder.Position);
         }
 
@@ -310,7 +308,7 @@ namespace Sprache.Tests
                        select new PosAwareStr { Value = s })
                        .Positioned();
             var r = pos.TryParse("winter");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(0, r.Value.Pos.Pos);
             Assert.AreEqual(6, r.Value.Length);
         }
@@ -343,7 +341,7 @@ namespace Sprache.Tests
         {
             var notAb = Parse.String("ab").Text().Not();
             var r = notAb.TryParse("d");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(0, r.Remainder.Position);
         }
 
@@ -359,7 +357,7 @@ namespace Sprache.Tests
         {
             var repeated = Parse.Char('a').Repeat(3);
             var r = repeated.TryParse("aaabbb");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(3, r.Remainder.Position);
         }
 
@@ -368,7 +366,7 @@ namespace Sprache.Tests
         {
             var repeated = Parse.Char('a').Repeat(3);
             var r = repeated.TryParse("bbbaaa");
-            Assert.IsTrue(!r.WasSuccessful);
+            Assert.IsTrue(!r.HasValue);
             Assert.AreEqual(0, r.Remainder.Position);
         }
 
@@ -377,7 +375,7 @@ namespace Sprache.Tests
         {
             var repeated = Parse.Char('a').Repeat(0);
             var r = repeated.TryParse("bbb");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.AreEqual(0, r.Remainder.Position);
         }
 
@@ -386,7 +384,7 @@ namespace Sprache.Tests
         {
             var sequence = Parse.Char('a').DelimitedBy(Parse.Char(','));
             var r = sequence.TryParse("a,a,a");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.IsTrue(r.Remainder.AtEnd);
         }
 
@@ -395,7 +393,7 @@ namespace Sprache.Tests
         {
             var parser = Parse.Char('a').Contained(Parse.Char('['), Parse.Char(']'));
             var r = parser.TryParse("[a]");
-            Assert.IsTrue(r.WasSuccessful);
+            Assert.IsTrue(r.HasValue);
             Assert.IsTrue(r.Remainder.AtEnd);
         }
     }

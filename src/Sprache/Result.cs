@@ -58,28 +58,47 @@ namespace Sprache
         {
             return new Result<T>(remainder, observations);
         }
+
+        /// <summary>
+        /// Creates a ResultObservation with a severity of Error.
+        /// </summary>
+        /// <param name="message">The observation's message</param>
+        /// <param name="expectations">The parse expectations</param>
+        /// <returns>The observation</returns>
+        public static ResultObservation Error(string message, params string[] expectations) { return Error(message, (IEnumerable<string>)expectations); }
+
+        /// <summary>
+        /// Creates a ResultObservation with a severity of Error.
+        /// </summary>
+        /// <param name="message">The observation's message</param>
+        /// <param name="expectations">The parse expectations</param>
+        /// <returns>The observation</returns>
+        public static ResultObservation Error(string message, IEnumerable<string> expectations) { return new ResultObservation(message, expectations); }
+
     }
 
     internal class Result<T> : IResult<T>
     {
+        private readonly bool _hasValue;
         private readonly T _value;
+
         private readonly Input _remainder;
-        private readonly bool _wasSuccessful;
         private readonly ResultObservation[] _observations;
 
         public Result(T value, Input remainder, IEnumerable<ResultObservation> observations)
         {
+            _hasValue = true;
             _value = value;
             _remainder = remainder;
-            _wasSuccessful = true;
             _observations = observations.ToArray();
         }
 
         public Result(Input remainder, IEnumerable<ResultObservation> observations)
         {
+            _hasValue = false;
             _value = default(T);
+
             _remainder = remainder;
-            _wasSuccessful = false;
             _observations = observations.ToArray();
         }
 
@@ -87,14 +106,14 @@ namespace Sprache
         {
             get
             {
-                if (!WasSuccessful)
+                if (!HasValue)
                     throw new InvalidOperationException("No value can be computed.");
 
                 return _value;
             }
         }
 
-        public bool WasSuccessful { get { return _wasSuccessful; } }
+        public bool HasValue { get { return _hasValue; } }
 
         public IEnumerable<ResultObservation> Observations { get { return _observations; }}
 
@@ -104,31 +123,20 @@ namespace Sprache
         {
             string intro;
 
-            if (!WasSuccessful)
+            if (!HasValue)
             {
                 var recentlyConsumed = CalculateRecentlyConsumed();
                 intro = string.Format("Parsing failure. Recently consumed: '{0}'.", recentlyConsumed);
             }
             else
             {
-                intro = string.Format("Successful parsing of {0}.", Value);
+                intro = string.Format("Successfuly parsed value: {0}.", Value);
             }
 
             string observations = string.Join(Environment.NewLine, Observations
-                .Select(x => string.Format("{0}: {1}", SeverityToString(x.Severity), x.Message)));
+                .Select(x => x.Message));
 
             return String.Format("{0} Observations: {2}{1}", intro , observations, Environment.NewLine);
-        }
-
-        private string SeverityToString(ResultObservationSeverity severity)
-        {
-            switch (severity)
-            {
-                case ResultObservationSeverity.Info: return "Info";
-                case ResultObservationSeverity.Warning: return "Warning";
-                case ResultObservationSeverity.Error: return "Error";
-                default: return "Observation";
-            }
         }
 
         private string CalculateRecentlyConsumed()

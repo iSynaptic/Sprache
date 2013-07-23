@@ -8,7 +8,7 @@ namespace Sprache
         {
             if(result == null) throw new ArgumentNullException("result");
 
-            if (result.WasSuccessful)
+            if (result.HasValue)
                 return next(result);
 
             return Result.Failure<U>(result.Remainder, result.Observations);
@@ -18,7 +18,7 @@ namespace Sprache
         {
             if (result == null) throw new ArgumentNullException("result");
 
-            return result.WasSuccessful 
+            return result.HasValue 
                 ? result 
                 : next(result);
         }
