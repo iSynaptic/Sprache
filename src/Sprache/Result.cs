@@ -10,70 +10,72 @@ namespace Sprache
     public static class Result
     {
         /// <summary>
-        /// Creates a success result.
+        /// Creates a result with a value.
         /// </summary>
         /// <typeparam name="T">The type of the result (value).</typeparam>
         /// <param name="value">The sucessfully parsed value.</param>
         /// <param name="remainder">The remainder of the input.</param>
-        /// <param name="observations">The resulting observations.</param>
+        /// <param name="errors">The resulting errors.</param>
         /// <returns>The new <see cref="IResult&lt;T&gt;"/>.</returns>
-        public static IResult<T> Success<T>(T value, Input remainder, params ResultObservation[] observations)
+        public static IResult<T> Value<T>(T value, Input remainder, params ResultError[] errors)
         {
-            return Success(value, remainder, (IEnumerable<ResultObservation>) observations);
+            return Value(value, remainder, (IEnumerable<ResultError>) errors);
         }
 
         /// <summary>
-        /// Creates a success result.
+        /// Creates a result with a value.
         /// </summary>
         /// <typeparam name="T">The type of the result (value).</typeparam>
         /// <param name="value">The sucessfully parsed value.</param>
         /// <param name="remainder">The remainder of the input.</param>
-        /// <param name="observations">The resulting observations.</param>
+        /// <param name="observations">The resulting errors.</param>
         /// <returns>The new <see cref="IResult&lt;T&gt;"/>.</returns>
-        public static IResult<T> Success<T>(T value, Input remainder, IEnumerable<ResultObservation> observations)
+        public static IResult<T> Value<T>(T value, Input remainder, IEnumerable<ResultError> observations)
         {
             return new Result<T>(value, remainder, observations);
         }
 
         /// <summary>
-        /// Creates a failure result.
+        /// Creates a result without a value.
         /// </summary>
         /// <typeparam name="T">The type of the result.</typeparam>
         /// <param name="remainder">The remainder of the input.</param>
-        /// <param name="observations">The resulting observations.</param>
+        /// <param name="errors">The resulting errors.</param>
         /// <returns>The new <see cref="IResult&lt;T&gt;"/>.</returns>
-        public static IResult<T> Failure<T>(Input remainder, params ResultObservation[] observations)
+        public static IResult<T> NoValue<T>(Input remainder, params ResultError[] errors)
         {
-            return Failure<T>(remainder, (IEnumerable<ResultObservation>)observations);
+            return NoValue<T>(remainder, (IEnumerable<ResultError>)errors);
         }
 
         /// <summary>
-        /// Creates a failure result.
+        /// Creates a result without a value.
         /// </summary>
         /// <typeparam name="T">The type of the result.</typeparam>
         /// <param name="remainder">The remainder of the input.</param>
-        /// <param name="observations">The resulting observations.</param>
+        /// <param name="observations">The resulting errors.</param>
         /// <returns>The new <see cref="IResult&lt;T&gt;"/>.</returns>
-        public static IResult<T> Failure<T>(Input remainder,  IEnumerable<ResultObservation> observations)
+        public static IResult<T> NoValue<T>(Input remainder,  IEnumerable<ResultError> observations)
         {
             return new Result<T>(remainder, observations);
         }
 
         /// <summary>
-        /// Creates a ResultObservation with a severity of Error.
+        /// Creates a ResultError
         /// </summary>
         /// <param name="message">The observation's message</param>
+        /// <param name="position"></param>
         /// <param name="expectations">The parse expectations</param>
         /// <returns>The observation</returns>
-        public static ResultObservation Error(string message, params string[] expectations) { return Error(message, (IEnumerable<string>)expectations); }
+        public static ResultError Error(string message, Position position, params string[] expectations) { return Error(message, position, (IEnumerable<string>)expectations); }
 
         /// <summary>
-        /// Creates a ResultObservation with a severity of Error.
+        /// Creates a ResultError
         /// </summary>
         /// <param name="message">The observation's message</param>
+        /// <param name="position"></param>
         /// <param name="expectations">The parse expectations</param>
         /// <returns>The observation</returns>
-        public static ResultObservation Error(string message, IEnumerable<string> expectations) { return new ResultObservation(message, expectations); }
+        public static ResultError Error(string message, Position position, IEnumerable<string> expectations) { return new ResultError(position, message, expectations); }
 
     }
 
@@ -83,23 +85,23 @@ namespace Sprache
         private readonly T _value;
 
         private readonly Input _remainder;
-        private readonly ResultObservation[] _observations;
+        private readonly ResultError[] _errors;
 
-        public Result(T value, Input remainder, IEnumerable<ResultObservation> observations)
+        public Result(T value, Input remainder, IEnumerable<ResultError> errors)
         {
             _hasValue = true;
             _value = value;
             _remainder = remainder;
-            _observations = observations.ToArray();
+            _errors = errors.ToArray();
         }
 
-        public Result(Input remainder, IEnumerable<ResultObservation> observations)
+        public Result(Input remainder, IEnumerable<ResultError> errors)
         {
             _hasValue = false;
             _value = default(T);
 
             _remainder = remainder;
-            _observations = observations.ToArray();
+            _errors = errors.ToArray();
         }
 
         public T Value
@@ -115,7 +117,7 @@ namespace Sprache
 
         public bool HasValue { get { return _hasValue; } }
 
-        public IEnumerable<ResultObservation> Observations { get { return _observations; }}
+        public IEnumerable<ResultError> Errors { get { return _errors; }}
 
         public Input Remainder { get { return _remainder; } }
 
@@ -133,10 +135,10 @@ namespace Sprache
                 intro = string.Format("Successfuly parsed value: {0}.", Value);
             }
 
-            string observations = string.Join(Environment.NewLine, Observations
+            string errors = string.Join(Environment.NewLine, Errors
                 .Select(x => x.Message));
 
-            return String.Format("{0} Observations: {2}{1}", intro , observations, Environment.NewLine);
+            return String.Format("{0} Errors: {2}{1}", intro, errors, Environment.NewLine);
         }
 
         private string CalculateRecentlyConsumed()

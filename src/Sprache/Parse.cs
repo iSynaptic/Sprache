@@ -26,14 +26,14 @@ namespace Sprache
                 if (!i.AtEnd)
                 {
                     if (predicate(i.Current))
-                        return Result.Success(i.Current, i.Advance());
+                        return Result.Value(i.Current, i.Advance());
 
-                    return Result.Failure<char>(i, 
-                        Result.Error(string.Format("unexpected '{0}'", i.Current), description));
+                    return Result.NoValue<char>(i, 
+                        Result.Error(string.Format("unexpected '{0}'", i.Current), Position.FromInput(i), description));
                 }
 
-                return Result.Failure<char>(i,
-                    Result.Error("Unexpected end of input reached", description));
+                return Result.NoValue<char>(i,
+                    Result.Error("Unexpected end of input reached", Position.FromInput(i), description));
             };
         }
 
@@ -211,10 +211,10 @@ namespace Sprache
 
                 if (result.HasValue)
                 {
-                    var msg = string.Format("'{0}' was not expected", string.Join(", ", result.Observations.SelectMany(x => x.Expectations)));
-                    return Result.Failure<object>(i, Result.Error(msg));
+                    var msg = string.Format("'{0}' was not expected", string.Join(", ", result.Errors.SelectMany(x => x.Expectations)));
+                    return Result.NoValue<object>(i, Result.Error(msg, Position.FromInput(i)));
                 }
-                return Result.Success<object>(null, i);
+                return Result.Value<object>(null, i);
             };
         }
  
@@ -246,7 +246,7 @@ namespace Sprache
             {
                 var results = parser(input);
                 return results.HasValue
-                    ? Result.Success(results.Value, input, results.Observations)
+                    ? Result.Value(results.Value, input, results.Errors)
                     : results;
             };
         }
@@ -278,7 +278,7 @@ namespace Sprache
                     r = parser(remainder);
                 }
 
-                return Result.Success<IEnumerable<T>>(result, remainder);
+                return Result.Value<IEnumerable<T>>(result, remainder);
             };
         }
 
@@ -301,7 +301,7 @@ namespace Sprache
             {
                 var remainder = i;
                 var result = new List<T>();
-                var observations = new List<ResultObservation>();
+                var observations = new List<ResultError>();
 
                 var r = parser(i);
 
@@ -315,7 +315,7 @@ namespace Sprache
                         if (remainder == r.Remainder)
                             break;
 
-                        observations.Add(Result.Error("Unexpected {0}.", elementDescription));
+                        observations.Add(Result.Error("Unexpected {0}.", Position.FromInput(i), elementDescription));
 
                         remainder = r.Remainder;
 
@@ -338,7 +338,7 @@ namespace Sprache
                     r = parser(remainder);
                 }
 
-                return Result.Success<IEnumerable<T>>(result, remainder, observations);
+                return Result.Value<IEnumerable<T>>(result, remainder, observations);
             };
         }
 
@@ -396,8 +396,9 @@ namespace Sprache
             return i => parser(i).IfSuccess(s =>
                 s.Remainder.AtEnd 
                     ? s
-                    : Result.Failure<T>(s.Remainder,
+                    : Result.NoValue<T>(s.Remainder,
                         Result.Error(string.Format("unexpected '{0}'", s.Remainder.Current),
+                                      Position.FromInput(i), 
                                       "end of input")));
         }
 
@@ -453,8 +454,8 @@ namespace Sprache
                            if (i.Memos.ContainsKey(p))
                                throw new ParseException(i.Memos[p].ToString());
 
-                           i.Memos[p] = Result.Failure<T>(i,
-                               Result.Error("Left recursion in the grammar."));
+                           i.Memos[p] = Result.NoValue<T>(i,
+                               Result.Error("Left recursion in the grammar.", Position.FromInput(i)));
 
                            var result = p(i);
                            i.Memos[p] = result;
@@ -512,7 +513,7 @@ namespace Sprache
             if (name == null) throw new ArgumentNullException("name");
 
             return i => parser(i).IfFailure(f => f.Remainder == i ?
-                Result.Failure<T>(f.Remainder, f.Observations.Concat(new[] { Result.Error(string.Format("Rule named '{0}' failed.", name)) })) :
+                Result.NoValue<T>(f.Remainder, f.Errors.Concat(new[] { Result.Error(string.Format("Rule named '{0}' failed.", name), Position.FromInput(i)) })) :
                 f);
         }
 
@@ -556,9 +557,9 @@ namespace Sprache
                 return secondFailure;
 
             if (secondFailure.Remainder.Position == firstFailure.Remainder.Position)
-                return Result.Failure<T>(
+                return Result.NoValue<T>(
                     firstFailure.Remainder,
-                    firstFailure.Observations.Union(secondFailure.Observations));
+                    firstFailure.Errors.Union(secondFailure.Errors));
 
             return firstFailure;
         }
@@ -599,7 +600,7 @@ namespace Sprache
         /// <returns></returns>
         public static Parser<T> Return<T>(T value)
         {
-            return i => Result.Success(value, i);
+            return i => Result.Value(value, i);
         }
 
         /// <summary>
@@ -634,8 +635,8 @@ namespace Sprache
                 {
                     var r = except(i);
                     if (r.HasValue)
-                        return Result.Failure<T>(i,
-                            Result.Error("Excepted parser succeeded.", "other than the excepted input"));
+                        return Result.NoValue<T>(i,
+                            Result.Error("Excepted parser succeeded.", Position.FromInput(i), "other than the excepted input"));
                     return parser(i);
                 };
         }
@@ -667,8 +668,8 @@ namespace Sprache
             if (predicate == null) throw new ArgumentNullException("predicate");
 
             return i => parser(i).IfSuccess(s =>
-                predicate(s.Value) ? s : Result.Failure<T>(i,
-                    Result.Error(string.Format("Unexpected {0}.", s.Value))));
+                predicate(s.Value) ? s : Result.NoValue<T>(i,
+                    Result.Error(string.Format("Unexpected {0}.", s.Value), Position.FromInput(i))));
         }
 
         /// <summary>

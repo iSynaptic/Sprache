@@ -45,19 +45,19 @@ namespace Sprache
                         for (int j = 0; j < match.Length; j++)
                             remainder = remainder.Advance();
 
-                        return Result.Success(match.Value, remainder);
+                        return Result.Value(match.Value, remainder);
                     }
 
                     var found = match.Index == input.Length
                                     ? "end of source"
                                     : string.Format("`{0}'", input[match.Index]);
-                    return Result.Failure<string>(
+                    return Result.NoValue<string>(
                         remainder,
-                        Result.Error("string matching regex `" + regex.ToString() + "' expected but " + found + " found", expectations));
+                        Result.Error("string matching regex `" + regex.ToString() + "' expected but " + found + " found", Position.FromInput(i), expectations));
                 }
 
-                return Result.Failure<string>(i,
-                    Result.Error("Unexpected end of input", expectations));
+                return Result.NoValue<string>(i,
+                    Result.Error("Unexpected end of input", Position.FromInput(i), expectations));
             };
         }
     }

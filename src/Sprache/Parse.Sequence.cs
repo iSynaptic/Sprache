@@ -55,9 +55,9 @@
                             : r.Remainder.Current.ToString();
 
                         var msg = string.Format("Unexpected '{0}'", what);
-                        var exp = string.Format("'{0}' {1} times, but was {2}", string.Join(", ", r.Observations.SelectMany(x => x.Expectations)), count, n);
-                        return Result.Failure<IEnumerable<T>>(i, 
-                            Result.Error(msg, exp));
+                        var exp = string.Format("'{0}' {1} times, but was {2}", string.Join(", ", r.Errors.SelectMany(x => x.Expectations)), count, n);
+                        return Result.NoValue<IEnumerable<T>>(i,
+                            Result.Error(msg, Position.FromInput(i), exp));
                     }
 
                     if (remainder != r.Remainder)
@@ -68,7 +68,7 @@
                     remainder = r.Remainder;
                 }
 
-                return Result.Success<IEnumerable<T>>(result, remainder);
+                return Result.Value<IEnumerable<T>>(result, remainder);
             };
         }
 

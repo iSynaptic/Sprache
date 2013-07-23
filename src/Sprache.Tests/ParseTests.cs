@@ -225,7 +225,7 @@ namespace Sprache.Tests
             var elements = result.Value.ToArray();
             Assert.IsTrue(elements.SequenceEqual(new[]{"ab", "ab", "ab"}));
 
-            var observations = result.Observations.ToArray();
+            var observations = result.Errors.ToArray();
             Assert.AreEqual(1, observations.Length);
 
             Assert.IsTrue(result.Remainder.AtEnd);

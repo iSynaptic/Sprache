@@ -14,7 +14,7 @@ namespace Sprache.Tests
         {
             var p = Parse.String("xy").Text().XMany().End();
             var r = (Result<IEnumerable<string>>)p.TryParse("x{");
-            Assert.That(r.Observations.Any(x => x.Message.Contains("unexpected '{'")));
+            Assert.That(r.Errors.Any(x => x.Message.Contains("unexpected '{'")));
         }
 
         [Test]
@@ -26,7 +26,7 @@ namespace Sprache.Tests
 
             var r = (Result<string>)p.TryParse("x{");
 
-            const string expectedMessage = "Parsing failure. Recently consumed: 'x'. Observations: \r\nunexpected '{'";
+            const string expectedMessage = "Parsing failure. Recently consumed: 'x'. Errors: \r\nunexpected '{'";
 
             Assert.That(r.ToString(), Is.EqualTo(expectedMessage));
         }

@@ -22,9 +22,9 @@ namespace Sprache
                 var pr = parser(i);
 
                 if (pr.HasValue)
-                    return Result.Success(new Some<T>(pr.Value), pr.Remainder);
+                    return Result.Value(new Some<T>(pr.Value), pr.Remainder);
 
-                return Result.Success(new None<T>(), i);
+                return Result.Value(new None<T>(), i);
             };
         }
     }

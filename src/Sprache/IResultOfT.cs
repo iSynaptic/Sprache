@@ -19,9 +19,9 @@ namespace Sprache
         bool HasValue { get; }
 
         /// <summary>
-        /// Gets any observations as a result of parsing.
+        /// Gets any errors as a result of parsing.
         /// </summary>
-        IEnumerable<ResultObservation> Observations { get; }
+        IEnumerable<ResultError> Errors { get; }
             
         /// <summary>
         /// Gets the remainder of the input.
