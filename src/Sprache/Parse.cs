@@ -28,14 +28,12 @@ namespace Sprache
                     if (predicate(i.Current))
                         return Result.Success(i.Current, i.Advance());
 
-                    return Result.Failure<char>(i,
-                        string.Format("unexpected '{0}'", i.Current),
-                        new[] { description });
+                    return Result.Failure<char>(i, 
+                        Observe.Error(string.Format("unexpected '{0}'", i.Current), description));
                 }
 
                 return Result.Failure<char>(i,
-                    "Unexpected end of input reached",
-                    new[] { description });
+                    Observe.Error("Unexpected end of input reached", description));
             };
         }
 
@@ -213,8 +211,8 @@ namespace Sprache
 
                 if (result.WasSuccessful)
                 {
-                    var msg = string.Format("`{0}' was not expected", string.Join(", ", result.Expectations));
-                    return Result.Failure<object>(i, msg, new string[0]);
+                    var msg = string.Format("'{0}' was not expected", string.Join(", ", result.Observations.SelectMany(x => x.Expectations)));
+                    return Result.Failure<object>(i, Observe.Error(msg));
                 }
                 return Result.Success<object>(null, i);
             };
@@ -234,6 +232,23 @@ namespace Sprache
             if (second == null) throw new ArgumentNullException("second");
 
             return i => first(i).IfSuccess(s => second(s.Value)(s.Remainder));
+        }
+
+        /// <summary>
+        /// Parses, but does not consume the input
+        /// </summary>
+        /// <param name="parser"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static Parser<T> LookAhead<T>(this Parser<T> parser)
+        {
+            return input =>
+            {
+                var results = parser(input);
+                return results.WasSuccessful
+                    ? Result.Success(results.Value, input, results.Observations)
+                    : results;
+            };
         }
 
         /// <summary>
@@ -264,6 +279,66 @@ namespace Sprache
                 }
 
                 return Result.Success<IEnumerable<T>>(result, remainder);
+            };
+        }
+
+        /// <summary>
+        /// Parse a stream of elements, attemting to skip over invalid elements.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="U"></typeparam>
+        /// <param name="parser"></param>
+        /// <param name="panicUntil"></param>
+        /// <param name="elementDescription"></param>
+        /// <returns></returns>
+        /// <remarks>Implemented imperatively to decrease stack usage.</remarks>
+        public static Parser<IEnumerable<T>> ManyWithPanic<T, U>(this Parser<T> parser, Parser<U> panicUntil, string elementDescription)
+        {
+            if (parser == null) throw new ArgumentNullException("parser");
+            if (panicUntil == null) throw new ArgumentNullException("panicUntil");
+
+            return i =>
+            {
+                var remainder = i;
+                var result = new List<T>();
+                var observations = new List<ResultObservation>();
+
+                var r = parser(i);
+
+                while (true)
+                {
+                    if (r.WasSuccessful && remainder == r.Remainder)
+                        break;
+
+                    if (!r.WasSuccessful)
+                    {
+                        if (remainder == r.Remainder)
+                            break;
+
+                        observations.Add(Observe.Error("Unexpected {0}.", elementDescription));
+
+                        remainder = r.Remainder;
+
+                        var panicResult = panicUntil(remainder);
+
+                        while (!panicResult.WasSuccessful && !remainder.AtEnd)
+                        {
+                            remainder = remainder.Advance();
+                            panicResult = panicUntil(remainder);
+                        }
+
+                        remainder = panicResult.Remainder;
+                    }
+                    else
+                    {
+                        result.Add(r.Value);
+                        remainder = r.Remainder;    
+                    }
+
+                    r = parser(remainder);
+                }
+
+                return Result.Success<IEnumerable<T>>(result, remainder, observations);
             };
         }
 
@@ -321,10 +396,9 @@ namespace Sprache
             return i => parser(i).IfSuccess(s =>
                 s.Remainder.AtEnd 
                     ? s
-                    : Result.Failure<T>(
-                        s.Remainder,
-                        string.Format("unexpected '{0}'", s.Remainder.Current),
-                        new[] { "end of input" }));
+                    : Result.Failure<T>(s.Remainder,
+                        Observe.Error(string.Format("unexpected '{0}'", s.Remainder.Current),
+                                      "end of input")));
         }
 
         /// <summary>
@@ -380,8 +454,8 @@ namespace Sprache
                                throw new ParseException(i.Memos[p].ToString());
 
                            i.Memos[p] = Result.Failure<T>(i,
-                               "Left recursion in the grammar.",
-                               new string[0]);
+                               Observe.Error("Left recursion in the grammar."));
+
                            var result = p(i);
                            i.Memos[p] = result;
                            return result;
@@ -438,7 +512,7 @@ namespace Sprache
             if (name == null) throw new ArgumentNullException("name");
 
             return i => parser(i).IfFailure(f => f.Remainder == i ?
-                Result.Failure<T>(f.Remainder, f.Message, new[] { name }) :
+                Result.Failure<T>(f.Remainder, f.Observations.Concat(new[]{Observe.Error(string.Format("Rule named '{0}' failed.", name))})) :
                 f);
         }
 
@@ -484,8 +558,7 @@ namespace Sprache
             if (secondFailure.Remainder.Position == firstFailure.Remainder.Position)
                 return Result.Failure<T>(
                     firstFailure.Remainder,
-                    firstFailure.Message,
-                    firstFailure.Expectations.Union(secondFailure.Expectations));
+                    firstFailure.Observations.Union(secondFailure.Observations));
 
             return firstFailure;
         }
@@ -561,7 +634,8 @@ namespace Sprache
                 {
                     var r = except(i);
                     if (r.WasSuccessful)
-                        return Result.Failure<T>(i, "Excepted parser succeeded.", new[] { "other than the excepted input" });
+                        return Result.Failure<T>(i, 
+                            Observe.Error("Excepted parser succeeded.", "other than the excepted input" ));
                     return parser(i);
                 };
         }
@@ -594,8 +668,7 @@ namespace Sprache
 
             return i => parser(i).IfSuccess(s =>
                 predicate(s.Value) ? s : Result.Failure<T>(i,
-                    string.Format("Unexpected {0}.", s.Value),
-                    new string[0]));
+                    Observe.Error(string.Format("Unexpected {0}.", s.Value))));
         }
 
         /// <summary>

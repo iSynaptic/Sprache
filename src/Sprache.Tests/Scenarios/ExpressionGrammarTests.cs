@@ -12,7 +12,7 @@ namespace Sprache.Tests.Scenarios
         {
             const string input = "1 + (2 * 3";
             var x = Assert.Throws<ParseException>(() => ExpressionParser.ParseExpression(input));
-            Assert.That(x.Message, Is.StringContaining("expected )"));
+            Assert.That(x.Message, Is.StringContaining("Unexpected end of input"));
         }
 
         [Test]
